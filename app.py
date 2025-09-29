@@ -10,9 +10,19 @@ def index():
 
 @app.route("/snapshot.json")
 def snapshot():
-    if os.path.exists("busstop_snapshot.json"):
-        with open("busstop_snapshot.json", "r") as f:
-            data = json.load(f)
+    """最新のバス停スナップショットを返すエンドポイント"""
+    filepath = "busstop_snapshot.json"
+    if os.path.exists(filepath):
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception as e:
+            data = {"status": "error", "message": str(e)}
     else:
         data = {"status": "no data yet"}
     return jsonify(data)
+
+
+if __name__ == "__main__":
+    # ローカルデバッグ用
+    app.run(host="0.0.0.0", port=5000, debug=True)
