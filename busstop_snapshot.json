@@ -1,0 +1,80 @@
+{
+  "timestamp": "2025-09-29T11:20:32.973123+09:00",
+  "stops": {
+    "honkan_shonandai": {
+      "name": "２番のりば 湘南台駅西口 行き",
+      "type": "boarding",
+      "queue_count": 0,
+      "queue_length_meters": 0.0,
+      "is_bus_stopped": false,
+      "next_bus": {
+        "status": "scheduled",
+        "time": "14:29",
+        "line": "湘25",
+        "dest": "急行 湘南台駅西口",
+        "remark": null
+      }
+    },
+    "honkan_tsujido": {
+      "name": "１番のりば 辻堂駅北口 行き",
+      "type": "boarding",
+      "queue_count": 0,
+      "queue_length_meters": 0.0,
+      "is_bus_stopped": false,
+      "next_bus": {
+        "status": "scheduled",
+        "time": "15:15",
+        "line": "辻34",
+        "dest": "辻堂駅北口",
+        "remark": null
+      }
+    },
+    "honkan_kosha": {
+      "name": "おりば 中高等部 方面",
+      "type": "disembarking",
+      "is_bus_stopped": false,
+      "last_disembarked_count": 0,
+      "last_arrival_time_str": "11:15"
+    }
+  },
+  "gbfs": {
+    "timestamp": "2025-09-29T10:47:18.366733",
+    "bikes_available": 31,
+    "docks_available": 4,
+    "total_docks": 35
+  },
+  "raw": {
+    "objects": [
+      {
+        "id": 17399137,
+        "timestamp": "2025-09-29T11:20:32.973123+09:00",
+        "classification": "UNKNOWN",
+        "position": {
+          "lon": 139.4282096974861,
+          "lat": 35.387521621816305,
+          "alt": 28.822776365280152
+        },
+        "heading": 104.33496129156494,
+        "horizontal_speed": 0.5850267940339218,
+        "vertical_velocity": 0.4072794020175934,
+        "dimensions": {
+          "length": 1.3858954906463623,
+          "height": 1.9395344257354736,
+          "width": 0.8521214723587036
+        },
+        "horizontal_position_uncertainty": 0.5445068105892775,
+        "vertical_position_uncertainty": 0.38502445816993713,
+        "heading_uncertainty": 18.82830238342285,
+        "horizontal_speed_uncertainty": 0.42991644144058233,
+        "vertical_velocity_uncertainty": 0.4299164414405823,
+        "dimensions_uncertainty": {
+          "length": 0.43189090490341187,
+          "height": 0.43189090490341187,
+          "width": 0.43189090490341187
+        },
+        "map_matched_position": null,
+        "map_link_id": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+flask
+gunicorn
+boto3
+awscrt
+awsiotsdk
+shapely
+numpy
+scikit-learn

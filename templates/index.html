@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>本館前バス停ライブモニタ</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <style>
+    :root{ --bg:#0b1220; --card:#1e293b; --muted:#94a3b8; --accent-red:#f87171; --accent-orange:#fb923c; --accent-blue:#60a5fa; --accent-purple:#a78bfa; --accent-lime:#4ade80;}
+    html,body{height:100%;margin:0;font-family:system-ui, -apple-system, "Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif;}
+    body{display:flex;height:100vh;background:#0f172a;color:#e2e8f0;}
+    #left{width:380px;padding:18px;box-sizing:border-box;background:#1e293b;display:flex;flex-direction:column;gap:16px;overflow-y:auto;}
+    h1{margin:0;font-size:20px;color:#fff;}
+    .small{font-size:13px;color:var(--muted)}
+    .card{background:#0f172a;padding:12px;border-radius:10px;box-shadow:0 4px 12px #00000040;margin-bottom: 10px;}
+    .big{font-size:36px;font-weight:700;line-height:1;color:#fff;}
+    .stop-title{font-weight:700;color:#fff;margin-bottom:8px;border-bottom:1px solid #334155;padding-bottom:6px;font-size:16px;}
+    .status-text{font-weight:700;margin-bottom:8px;display:none;align-items:center;gap:8px;}
+    .row{display:flex;gap:8px;align-items:baseline;}
+    #map{flex:1}
+    footer{margin-top:auto;padding-top:16px;font-size:12px;color:var(--muted)}
+    .timetable { background: #334155; padding: 8px 12px; border-radius: 8px; margin-top: 12px; }
+    .timetable .time { font-size: 18px; font-weight: 700; color: #facc15; }
+    .timetable .dest { font-size: 16px; color: #fff; }
+    .timetable .line { font-size: 12px; background: #475569; padding: 2px 6px; border-radius: 4px; color: #e2e8f0; }
+    .timetable-stopped { border-left: 4px solid var(--accent-red); }
+    .timetable-ended { text-align: center; color: var(--muted); }
+    .remark-last { color: var(--accent-red); font-weight: bold; }
+    .remark-second-to-last { color: var(--accent-lime); font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div id="left">
+    <h1>🚌本館前バス停ライブモニタ</h1>
+    <div id="stop-cards-container"></div>
+    <h1>🚲️HELLO CYCLING ライブモニタ</h1>
+    <div class="card" id="gbfs-card" style="display: none;">
+        <div class="stop-title">慶應義塾大学湘南藤沢キャンパスステーション</div>
+        <div class="row">
+            <div>
+                <div class="small">利用可能</div>
+                <div id="gbfs-bikes" class="big">—</div>
+            </div>
+            <div style="margin-left: 16px;">
+                <div class="small">返却可能</div>
+                <div id="gbfs-returnable" class="big">—</div>
+            </div>
+        </div>
+    </div>
+    <div class="small">最終更新: <span id="ts">—</span></div>
+    <div class="card" style="display: none;">
+        <div class="stop-title">お知らせ</div>
+        <div class="row">
+            <div class=""></div>
+        </div>
+    </div>
+    
+    <footer>
+      <div>2025.9 SSP(DTC) Group D</div>
+      <div class="tiny">Ref. <a href="https://sfc-dtcl-pf.net/" target="_blank" alt="Digital Twin Campus Lab Platform" style="text-decoration:none;color:#9fb0c8;">DTCL-Platform</a>, <br>
+        <a href="https://ckan.odpt.org/dataset/c_bikeshare_gbfs-openstreet" target="_blank" alt="OpenStreet（ハローサイクリング） バイクシェア関連情報 / Bikeshare information of OpenStreet, OpenStreet株式会社 / 公共交通オープンデータ協議会, CC BY 4.0" style="text-decoration:none;color:#9fb0c8;">OpenStreet（ハローサイクリング） バイクシェア関連情報 / Bikeshare information of OpenStreet, OpenStreet株式会社 / 公共交通オープンデータ協議会, CC BY 4.0</a></div>
+    </footer>
+  </div>
+  <div id="map"></div>
+
+<script>
+
+/* ========== 設定 ========== */
+const SNAPSHOT_URL = 'busstop_snapshot.json';
+const REFRESH_INTERVAL_MS = 1000;
+const stopPolygons = {
+    honkan_shonandai: {
+        pedestrian: [
+                [35.3875335, 139.4282392],
+                [35.387351, 139.4281976],
+                [35.3872171, 139.428162],
+                [35.3871479, 139.4281409],
+                [35.3870941, 139.4281185],
+                [35.3870279, 139.4280735],
+                [35.3869591, 139.4280065],
+                [35.3869082, 139.4279488],
+                [35.3868568, 139.427867],
+                [35.3868076, 139.4277704],
+                [35.3867672, 139.4276813],
+                [35.3867125, 139.4277195],
+                [35.3867486, 139.4277906],
+                [35.3867808, 139.4278563],
+                [35.3868218, 139.4279273],
+                [35.386853, 139.4279743],
+                [35.3868962, 139.4280279],
+                [35.3869448, 139.4280816],
+                [35.3869846, 139.4281221],
+                [35.3870212, 139.4281536],
+                [35.3870633, 139.4281878],
+                [35.3871076, 139.4282144],
+                [35.3872487, 139.4282586],
+                [35.3875193, 139.4283311],
+                [35.3875335, 139.4282392],
+            ],
+        bus_lane: [
+                [35.3875273, 139.428289],
+                [35.3872239, 139.4282085],
+                [35.3872087, 139.4282702],
+                [35.3872434, 139.428286],
+                [35.3872803, 139.4282977],
+                [35.3875159, 139.4283581],
+                [35.3875273, 139.428289],
+            ]
+    },
+    honkan_tsujido: {
+        pedestrian: [
+                [35.3875482, 139.4283333],
+                [35.387815, 139.4284057],
+                [35.387827, 139.4283179],
+                [35.3875608, 139.4282508],
+                [35.3875482, 139.4283333],
+            ],
+        bus_lane: [
+                [35.3875537, 139.428293],
+                [35.3875433, 139.4283628],
+                [35.3878095, 139.4284332],
+                [35.3878205, 139.4283594],
+                [35.3875537, 139.428293],
+            ]
+    },
+    honkan_kosha: {
+        pedestrian: [
+                [35.3875998, 139.4284165],
+                [35.3875817, 139.4285144],
+                [35.3878797, 139.4285922],
+                [35.3878944, 139.4284883],
+                [35.3875998, 139.4284165],
+            ],
+        bus_lane: [
+                [35.3878746, 139.4284526],
+                [35.3876063, 139.4283816],
+                [35.3875943, 139.428446],
+                [35.3878649, 139.4285184],
+                [35.3878746, 139.4284526],
+            ]
+    }
+};
+
+/* ========================= */
+const map = L.map('map').setView([35.3875, 139.4284], 18);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 22, attribution: '&copy; OpenStreetMap' }).addTo(map);
+
+// ポリゴン描画
+L.polygon(stopPolygons.honkan_shonandai.pedestrian, { color: 'var(--accent-orange)', fillColor: 'var(--accent-orange)', fillOpacity: 0.1}).addTo(map).bindPopup('湘南台行き バス列');
+L.polygon(stopPolygons.honkan_shonandai.bus_lane, { color: 'var(--accent-red)', fillColor: 'var(--accent-red)', fillOpacity: 0.1}).addTo(map).bindPopup('湘南台行き 停留バース');
+L.polygon(stopPolygons.honkan_tsujido.pedestrian, { color: 'var(--accent-orange)', fillColor: 'var(--accent-orange)', fillOpacity: 0.1}).addTo(map).bindPopup('辻堂行き バス列');
+L.polygon(stopPolygons.honkan_tsujido.bus_lane, { color: 'var(--accent-red)', fillColor: 'var(--accent-red)', fillOpacity: 0.1}).addTo(map).bindPopup('辻堂行き 停留バース');
+L.polygon(stopPolygons.honkan_kosha.pedestrian, { color: 'var(--accent-purple)', fillColor: 'var(--accent-purple)', fillOpacity: 0.1}).addTo(map).bindPopup('降車エリア');
+L.polygon(stopPolygons.honkan_kosha.bus_lane, { color: 'var(--accent-blue)', fillColor: 'var(--accent-blue)', fillOpacity: 0.1}).addTo(map).bindPopup('降車バース');
+
+let objectLayer = L.layerGroup().addTo(map);
+const stopCardsContainer = document.getElementById('stop-cards-container');
+const el = { ts: document.getElementById('ts') };
+
+const personIcon = L.divIcon({ className: 'custom-div-icon', html: '<div style="background-color: var(--accent-blue); width: 18px; height: 18px; border-radius: 50%; border: 2px solid white;"></div>', iconSize: [24, 24], iconAnchor: [12, 12] });
+const vehicleIcon = L.divIcon({ className: 'custom-div-icon', html: '<div style="background-color: var(--accent-red); width: 24px; height: 24px; border-radius: 50%; border: 2px solid white;"></div>', iconSize: [30, 30], iconAnchor: [15, 15] });
+const unknownIcon = L.divIcon({ className: 'custom-div-icon', html: '<div style="background-color: var(--muted); width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>', iconSize: [16, 16], iconAnchor: [8, 8] });
+
+async function fetchSnapshot() {
+  try {
+    const res = await fetch(SNAPSHOT_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    if (!text) return; 
+    const data = JSON.parse(text);
+    console.clear();
+    console.log(`[${new Date().toLocaleTimeString()}] Snapshot Received:`, data);
+    if (data.raw && data.raw.objects && data.raw.objects.length > 0) {
+      console.log("Detected objects in raw data:");
+      console.table(data.raw.objects.map(o => ({ id: o.id, classification: o.classification, lon: o.position ? o.position.lon : 'N/A', lat: o.position ? o.position.lat : 'N/A' })));
+    }
+    updateUI(data);
+  } catch(e) { 
+    console.error('Fetch/Parse Error:', e); 
+  }
+}
+
+// ★★★ これがカードを動的に作るための関数 ★★★
+function createStopCardHtml(stopId, stopData) {
+    const name = stopData.name || stopId;
+    if (stopData.type === 'boarding') {
+        return `
+        <div class="card" id="card-${stopId}">
+            <div class="stop-title">${name}</div>
+            <div class="row">
+                <div><div class="small">並び人数</div><div class="count big">—</div></div>
+                <div style="margin-left:16px;"><div class="small">列の長さ</div><div class="length big">— m</div></div>
+            </div>
+            <div class="timetable">情報待機中...</div>
+        </div>`;
+    } else if (stopData.type === 'disembarking') {
+        return `
+        <div class="card" id="card-${stopId}">
+            <div class="stop-title">${name}</div>
+            <div class="status-text" style="color:var(--accent-orange);">🚌 バス停車中</div>
+            <div class="last-count small">情報待機中...</div>
+        </div>`;
+    }
+    return '';
+}
+
+
+function updateUI(snapshot) {
+    if (!snapshot) return;
+    el.ts.textContent = snapshot.timestamp;
+    const stops = snapshot.stops || {};
+    const displayOrder = ["honkan_tsujido", "honkan_shonandai", "honkan_kosha"];
+
+    for (const stopId of displayOrder) {
+        const stopData = stops[stopId];
+        let card = document.getElementById(`card-${stopId}`);
+
+        if (!card) {
+            stopCardsContainer.innerHTML += createStopCardHtml(stopId, stopData);
+            card = document.getElementById(`card-${stopId}`);
+        }
+        if (!card) continue;
+
+        if (stopData.type === 'boarding') {
+            card.querySelector('.count').textContent = stopData.queue_count ?? '...';
+            card.querySelector('.length').textContent = (stopData.queue_length_meters ?? 0.0).toFixed(2) + 'm';
+            
+            const timetableEl = card.querySelector('.timetable');
+            const nextBus = stopData.next_bus;
+            if (nextBus) {
+                if (nextBus.status === 'scheduled') {
+                    let remarkHtml = '';
+                    if (nextBus.remark === 'last') remarkHtml = `<span class="remark-last">終車</span>`;
+                    else if (nextBus.remark === 'second_to_last') remarkHtml = `<span class="remark-second-to-last">終前</span>`;
+                    const destHtml = `<div class="dest">${nextBus.dest} 行き ${remarkHtml}</div>`;
+                    if (stopData.is_bus_stopped) {
+                        timetableEl.classList.add('timetable-stopped');
+                        timetableEl.innerHTML = `<div><span class="time">${nextBus.time}</span> 発 <span class="line">${nextBus.line}</span></div>${destHtml}<div style="font-weight:700; color:var(--accent-red); margin-top:4px;">停車中</div>`;
+                    } else {
+                        timetableEl.classList.remove('timetable-stopped');
+                        timetableEl.innerHTML = `<div class="small">今度の発車</div><div><span class="time">${nextBus.time}</span> 発 <span class="line">${nextBus.line}</span></div>${destHtml}`;
+                    }
+                } else if (nextBus.status === 'ended') {
+                    timetableEl.innerHTML = `<div class="timetable-ended">本日のバスは終了しました</div>`;
+                } else {
+                    timetableEl.innerHTML = `<div class="timetable-ended">運行情報がありません</div>`;
+                }
+            }
+        } else if (stopData.type === 'disembarking') {
+            card.querySelector('.status-text').style.display = stopData.is_bus_stopped ? 'flex' : 'none';
+            const lastCountEl = card.querySelector('.last-count');
+            if (stopData.is_bus_stopped) {
+                lastCountEl.textContent = '現在、降車中です...';
+            } else {
+                lastCountEl.textContent = stopData.last_arrival_time_str ? `${stopData.last_arrival_time_str} 到着便の降車: ${stopData.last_disembarked_count}人` : '到着バスの情報待ち';
+            }
+        }
+    }
+
+    // ★ NEW: レンタルサイクル情報の表示
+    const gbfsCard = document.getElementById('gbfs-card');
+    if (snapshot.gbfs) {
+        gbfsCard.style.display = 'block';
+        document.getElementById('gbfs-bikes').textContent = snapshot.gbfs.bikes_available ?? '...';
+        document.getElementById('gbfs-returnable').textContent = snapshot.gbfs.docks_available ?? '...';
+    } else {
+        gbfsCard.style.display = 'none';
+    }
+
+    // --- マーカー描画 ---
+    objectLayer.clearLayers();
+    const objects = snapshot.raw ? snapshot.raw.objects : [];
+    if (objects.length > 0) {
+        objects.forEach(obj => {
+            if (!obj.position) return;
+            const { lat, lon } = obj.position;
+            const cls = (obj.classification || '').toUpperCase();
+            let iconToUse;
+            if (cls === 'PERSON') iconToUse = personIcon;
+            else if (cls === 'VEHICLE') iconToUse = vehicleIcon;
+            else iconToUse = unknownIcon;
+            const marker = L.marker([lat, lon], { icon: iconToUse });
+            marker.bindPopup(`type:${cls}<br>id:${obj.id}<br>lon:${lon.toFixed(6)}, lat:${lat.toFixed(6)}`);
+            objectLayer.addLayer(marker);
+        });
+        if (objectLayer.getLayers().length > 0) {
+            map.fitBounds(objectLayer.getBounds().pad(0.2)); 
+        }
+    }
+}
+
+setInterval(fetchSnapshot, REFRESH_INTERVAL_MS);
+fetchSnapshot();
+</script>
+</body>
+</html>
