@@ -1,8 +1,14 @@
 from flask import Flask, jsonify, render_template
-import json
-import os
+import json, os, threading, subprocess
 
 app = Flask(__name__)
+
+# --- busstop.py をバックグラウンドで起動 ---
+def run_busstop():
+    subprocess.Popen(["python", "busstop.py"])
+
+# Flask 起動時に busstop.py を走らせる
+threading.Thread(target=run_busstop, daemon=True).start()
 
 @app.route("/")
 def index():
@@ -10,19 +16,9 @@ def index():
 
 @app.route("/snapshot.json")
 def snapshot():
-    """最新のバス停スナップショットを返すエンドポイント"""
-    filepath = "busstop_snapshot.json"
-    if os.path.exists(filepath):
-        try:
-            with open(filepath, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except Exception as e:
-            data = {"status": "error", "message": str(e)}
+    if os.path.exists("busstop_snapshot.json"):
+        with open("busstop_snapshot.json", "r") as f:
+            data = json.load(f)
     else:
         data = {"status": "no data yet"}
     return jsonify(data)
-
-
-if __name__ == "__main__":
-    # ローカルデバッグ用
-    app.run(host="0.0.0.0", port=5000, debug=True)
